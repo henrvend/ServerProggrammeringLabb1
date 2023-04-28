@@ -7,7 +7,6 @@ const jsDOM = require('jsdom');
 const cookieParser = require('cookie-parser');
 const globalObject = require('./servermodules/game-modul.js');
 const fs = require('fs');
-const bodyParser = require('body-parser');
 
 const app = express();
 
@@ -15,14 +14,14 @@ const app = express();
 // Sätter rot-access från '/', så att man kommer åt filerna från webben
 // och man kan skriva in ex. localhost:3000/html/index.html och nå sidan, 
 // utan att man skickas dit.
-app.use('/', express.static(__dirname +('/static')));
+app.use('/public', express.static(__dirname +('/static')));
+app.use(express.urlencoded( { extended:true} ));
 
 //använder coockieParser som middleware
 app.use(cookieParser());
 
 //använder bodyparser som middleware, låter post functionen automatiskt omvandla 
 //json till strängar som kan hämtas 
-app.use(bodyParser());
 
 
 app.get('/', (req, res) => {
