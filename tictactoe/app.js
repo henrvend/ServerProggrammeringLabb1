@@ -40,6 +40,12 @@ app.post('/', (req, res) => {
     if (name.length < 3) {
       throw {element:name,message:'Namn måste vara längre än 3 tecken'}
     }
+    if(color.length!=7){
+      throw {element:color, message:'Färg ska innehålla 7 tecken!'}
+    }
+    if(color==='#ffffff' || color==='#000000'){
+      throw{element:color, message:'Ogiltlig färg!'}
+    }
 
   } catch (err) {
 
