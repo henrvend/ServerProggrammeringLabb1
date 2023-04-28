@@ -14,14 +14,11 @@ const app = express();
 // Sätter rot-access från '/', så att man kommer åt filerna från webben
 // och man kan skriva in ex. localhost:3000/html/index.html och nå sidan, 
 // utan att man skickas dit.
-app.use('/public', express.static(__dirname +('/static')));
-app.use(express.urlencoded( { extended:true} ));
+app.use('/public', express.static(__dirname + ('/static')));
+app.use(express.urlencoded({ extended: true }));
 
 //använder coockieParser som middleware
-app.use(cookieParser());
-
-//använder bodyparser som middleware, låter post functionen automatiskt omvandla 
-//json till strängar som kan hämtas 
+//app.use(cookieParser());
 
 
 app.get('/', (req, res) => {
@@ -33,19 +30,45 @@ app.get('/', (req, res) => {
 //skapar ett post-anrop 
 //här ska valideringen av uppgifter ske när de hämtas in från formuläret
 app.post('/', (req, res) => {
-    console.log('inloggad');
-    let name = req.body.nick_1;
-    let color = req.body.color_1;
-    console.log(name);
-    console.log(color);
-    res.sendFile(__dirname + '/static/html/index.html');
+  console.log('inloggad');
+  let name = req.body.nick_1;
+  let color = req.body.color_1;
+  try {
+    if (name === undefined || name === '') {
+       throw{element:name,message:'Namn måste vara ifyllt'}
+    }
+    if (name.length < 3) {
+      throw {element:name,message:'Namn måste vara längre än 3 tecken'}
+    }
+
+  } catch (err) {
+
+    fs.readFile(__dirname + '/static/html/loggain.html', (error, data) => {
+      if (error) {
+        res.send(error.message);
+
+      } else {
+        console.log(err.message);
+        let serverDOM = new jsDOM.JSDOM(data);
+        serverDOM.window.document.querySelector('#errorMsg').textContent=err.message;
+        data = serverDOM.serialize();
+
+        res.send(data);
+      }
+    });
+    return
+  }
+
+  console.log(name);
+  console.log(color);
+  res.sendFile(__dirname + '/static/html/index.html');
 });
 
 
 
 
 app.listen('3000', () => {
-    console.log('Server startat på port 3000');
+  console.log('Server startat på port 3000');
 });
 
 //Filen app.js är den enda ni skall och tillåts skriva kod i.
