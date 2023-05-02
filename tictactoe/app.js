@@ -48,7 +48,6 @@ app.post('/', (req, res) => {
     }
 
   } catch (err) {
-
     fs.readFile(__dirname + '/static/html/loggain.html', (error, data) => {
       if (error) {
         res.send(error.message);
@@ -62,7 +61,7 @@ app.post('/', (req, res) => {
         res.send(data);
       }
     });
-    return
+    return;
   }
 
   console.log(name);
