@@ -7,11 +7,9 @@ const jsDOM = require('jsdom');
 const cookieParser = require('cookie-parser');
 const globalObject = require('./servermodules/game-modul.js');
 const fs = require('fs');
-//const { log } = require('console');
 
 const app = express();
 
-// Använd det här istället
 // Sätter rot-access från '/', så att man kommer åt filerna från webben
 // och man kan skriva in ex. localhost:3000/html/index.html och nå sidan, 
 // utan att man skickas dit.
@@ -24,7 +22,7 @@ app.use(cookieParser('hemligheter'));
 
 app.get('/', (req, res) => {
   console.log('hello there');
-  if(req.signedCookies.name!=undefined){
+  if(req.signedCookies.name != undefined && req.signedCookies.color != undefined){
     res.sendFile(__dirname + '/static/html/index.html');
   }else{
     res.sendFile(__dirname + '/static/html/loggaIn.html');
@@ -35,7 +33,8 @@ app.get('/', (req, res) => {
 app.get('/reset', (req, res) => {
   res.clearCookie('color');
   res.clearCookie('name');
-  res.sendFile(__dirname + '/static/html/loggaIn.html');
+  res.redirect('/');
+  //res.sendFile(__dirname + '/static/html/loggaIn.html');
 });
 
 
@@ -50,6 +49,7 @@ app.post('/', (req, res) => {
     if (name === undefined || name === '') {
        throw{element:name,message:'Namn måste vara ifyllt'}
     }
+    
     if (name.length < 3) {
       throw {element:name,message:'Namn måste vara längre än 3 tecken'}
     }
@@ -60,6 +60,9 @@ app.post('/', (req, res) => {
       throw{element:color, message:'Ogiltlig färg!'}
     }
     console.log('inloggad');
+    /* Invänta feedback gällande ifall vi ska rensa kakor innan nya värden tilldelas befintliga kakor. Oroligheterna ligger väl egentligen i att vi rensar även fast det inte exister några kakor.
+    res.clearCookie.color;
+    res.clearCookie.name;*/
     res.cookie('color', color, {maxAge : 2000*60*60, signed: true} );
     res.cookie('name', name, {maxAge : 2000*60*60, signed: true});
 
