@@ -7,6 +7,7 @@ const jsDOM = require('jsdom');
 const cookieParser = require('cookie-parser');
 const globalObject = require('./servermodules/game-modul.js');
 const fs = require('fs');
+//const { log } = require('console');
 
 const app = express();
 
@@ -18,19 +19,27 @@ app.use('/public', express.static(__dirname + ('/static')));
 app.use(express.urlencoded({ extended: true }));
 
 //använder coockieParser som middleware
-//app.use(cookieParser());
+app.use(cookieParser('hemligheter'));
 
 
 app.get('/', (req, res) => {
   console.log('hello there');
-  res.sendFile(__dirname + '/static/html/loggaIn.html');
+  if(req.cookies('color', 'name')!=undefined){
+    res.sendFile(__dirname + '/static/html/index.html');
+  }else{
+    res.sendFile(__dirname + '/static/html/loggaIn.html');
+  }
+  
 });
 
-
+app.get('/reset', (req, res) => {
+  res.clearCookie('color', 'name');
+});
 //skapar ett post-anrop 
 //här ska valideringen av uppgifter ske när de hämtas in från formuläret
 app.post('/', (req, res) => {
-  console.log('inloggad');
+  
+  
   let name = req.body.nick_1;
   let color = req.body.color_1;
   try {
@@ -46,7 +55,9 @@ app.post('/', (req, res) => {
     if(color==='#ffffff' || color==='#000000'){
       throw{element:color, message:'Ogiltlig färg!'}
     }
-
+    console.log('inloggad');
+    res.cookie('color', color, {maxAge : 1000*60*60, signed: true} );
+    res.cookie('name', name, {maxAge : 1000*60*60, signed: true});
   } catch (err) {
     fs.readFile(__dirname + '/static/html/loggain.html', (error, data) => {
       if (error) {
