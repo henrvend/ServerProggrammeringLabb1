@@ -24,7 +24,7 @@ app.use(cookieParser('hemligheter'));
 
 app.get('/', (req, res) => {
   console.log('hello there');
-  if(req.cookies('color', 'name')!=undefined){
+  if(req.signedCookies.name!=undefined){
     res.sendFile(__dirname + '/static/html/index.html');
   }else{
     res.sendFile(__dirname + '/static/html/loggaIn.html');
@@ -33,8 +33,12 @@ app.get('/', (req, res) => {
 });
 
 app.get('/reset', (req, res) => {
-  res.clearCookie('color', 'name');
+  res.clearCookie('color');
+  res.clearCookie('name');
+  res.sendFile(__dirname + '/static/html/loggaIn.html');
 });
+
+
 //skapar ett post-anrop 
 //här ska valideringen av uppgifter ske när de hämtas in från formuläret
 app.post('/', (req, res) => {
@@ -56,8 +60,9 @@ app.post('/', (req, res) => {
       throw{element:color, message:'Ogiltlig färg!'}
     }
     console.log('inloggad');
-    res.cookie('color', color, {maxAge : 1000*60*60, signed: true} );
-    res.cookie('name', name, {maxAge : 1000*60*60, signed: true});
+    res.cookie('color', color, {maxAge : 2000*60*60, signed: true} );
+    res.cookie('name', name, {maxAge : 2000*60*60, signed: true});
+
   } catch (err) {
     fs.readFile(__dirname + '/static/html/loggain.html', (error, data) => {
       if (error) {
@@ -77,7 +82,7 @@ app.post('/', (req, res) => {
 
   console.log(name);
   console.log(color);
-  res.sendFile(__dirname + '/static/html/index.html');
+  res.redirect('/');
 });
 
 
