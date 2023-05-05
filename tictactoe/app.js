@@ -1,6 +1,7 @@
 'use strict';
 //Adam Brattström
 //Henrik Vendel
+//Alex Håkman Skoglöf
 
 const express = require('express');
 const jsDOM = require('jsdom');
@@ -16,7 +17,7 @@ const app = express();
 app.use('/public', express.static(__dirname + ('/static')));
 app.use(express.urlencoded({ extended: true }));
 
-//använder coockieParser som middleware
+//använder cookieParser som middleware, sätter signed
 app.use(cookieParser('hemligheter'));
 
 
@@ -27,14 +28,13 @@ app.get('/', (req, res) => {
   }else{
     res.sendFile(__dirname + '/static/html/loggaIn.html');
   }
-  
 });
 
 app.get('/reset', (req, res) => {
   res.clearCookie('color');
   res.clearCookie('name');
   res.redirect('/');
-  //res.sendFile(__dirname + '/static/html/loggaIn.html');
+  //Kan man på något sätt rensa alla kakor med en rad kod?
 });
 
 
@@ -45,13 +45,25 @@ app.post('/', (req, res) => {
   
   let name = req.body.nick_1;
   let color = req.body.color_1;
+
+  if(globalObject.playerOneNick==null){
+    globalObject.playerOneNick=name;
+  }else{
+    globalObject.playerTwoNick=name;
+  }
+
+  if(globalObject.playerOneColor==null){
+    globalObject.playerOneColor=color;
+  }else{
+    globalObject.playerTwoColor=color;
+  }
+
   try {
     if (name === undefined || name === '') {
-       throw{element:name,message:'Namn måste vara ifyllt'}
+       throw{element:name, message:'Namn måste vara ifyllt'}
     }
-    
     if (name.length < 3) {
-      throw {element:name,message:'Namn måste vara längre än 3 tecken'}
+      throw {element:name, message:'Namn måste vara längre än 3 tecken'}
     }
     if(color.length!=7){
       throw {element:color, message:'Färg ska innehålla 7 tecken!'}
@@ -59,12 +71,19 @@ app.post('/', (req, res) => {
     if(color==='#ffffff' || color==='#000000'){
       throw{element:color, message:'Ogiltlig färg!'}
     }
+    if(globalObject.playerTwoNick==globalObject.playerOneNick){
+      throw{message:'Nickname redan taget!'}
+    }
+    if(globalObject.playerTwoColor==globalObject.playerOneColor){
+      throw{message:'Färg redan taget!'}
+    }
     console.log('inloggad');
-    /* Invänta feedback gällande ifall vi ska rensa kakor innan nya värden tilldelas befintliga kakor. Oroligheterna ligger väl egentligen i att vi rensar även fast det inte exister några kakor.
+    /* Invänta feedback gällande ifall vi ska rensa kakor innan nya värden tilldelas befintliga kakor. 
+    Oroligheterna ligger väl egentligen i att vi rensar även fast det inte exister några kakor.
     res.clearCookie.color;
     res.clearCookie.name;*/
-    res.cookie('color', color, {maxAge : 2000*60*60, signed: true} );
-    res.cookie('name', name, {maxAge : 2000*60*60, signed: true});
+    res.cookie('color', color, {maxAge : 1000*60*120, signed: true});
+    res.cookie('name', name, {maxAge : 1000*60*120, signed: true});
 
   } catch (err) {
     fs.readFile(__dirname + '/static/html/loggain.html', (error, data) => {
