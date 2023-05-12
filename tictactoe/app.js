@@ -46,6 +46,8 @@ app.post('/', (req, res) => {
   let name = req.body.nick_1;
   let color = req.body.color_1;
 
+  //Osäkra på hur vi ska lägga till och kolla namn innan de sätts
+  // från clientsidan, gör så här och ändrar efter att labb2 startar.
   if(globalObject.playerOneNick==null){
     globalObject.playerOneNick=name;
   }else{
@@ -58,6 +60,7 @@ app.post('/', (req, res) => {
     globalObject.playerTwoColor=color;
   }
 
+  //Här startar kollen av data som kommer in
   try {
     if (name === undefined || name === '') {
        throw{element:name, message:'Namn måste vara ifyllt'}
