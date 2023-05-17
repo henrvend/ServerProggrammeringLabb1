@@ -224,42 +224,36 @@ io.on('connection', (socket) => {
       io.emit('gameover', 
         vinnare
       );
-      globalObject.playerOneNick=null;
-      globalObject.playerTwoNick=null;
-      globalObject.playerOneColor=null;
-      globalObject.playerTwoColor=null;
-      globalObject.playerOneSocketId=null;
-      globalObject.playerTwoSocketId=null;
+      resetPlayers();
     }
     else if(x==2) {
       vinnare = 'Vinnare är ' + globalObject.playerTwoNick + '!';
       io.emit('gameover', 
         vinnare
       );
-      globalObject.playerOneNick=null;
-      globalObject.playerTwoNick=null;
-      globalObject.playerOneColor=null;
-      globalObject.playerTwoColor=null;
-      globalObject.playerOneSocketId=null;
-      globalObject.playerTwoSocketId=null;
+      resetPlayers();
     }
     else if(x==3){
       vinnare = 'Det blev oavgjort!';
       io.emit('gameover', 
         vinnare
       );
-      globalObject.playerOneNick=null;
-      globalObject.playerTwoNick=null;
-      globalObject.playerOneColor=null;
-      globalObject.playerTwoColor=null;
-      globalObject.playerOneSocketId=null;
-      globalObject.playerTwoSocketId=null;
+      resetPlayers();
 
     }
     console.log('testing ' + x);
 
   });
 });
+
+function resetPlayers(){
+  globalObject.playerOneNick=null;
+      globalObject.playerTwoNick=null;
+      globalObject.playerOneColor=null;
+      globalObject.playerTwoColor=null;
+      globalObject.playerOneSocketId=null;
+      globalObject.playerTwoSocketId=null;
+}
 
 
 
