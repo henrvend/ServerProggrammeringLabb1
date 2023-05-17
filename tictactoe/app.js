@@ -134,26 +134,24 @@ io.on('connection', (socket) => {
   let opponentColor;
   let myColor;
 
-  if (globalObject.playerOneNick == null) {
+  if (globalObject.playerOneSocketId == null) {
 
     globalObject.playerOneSocketId = socket.id;
     globalObject.playerOneNick = socket.name;
     globalObject.playerOneColor = socket.color;
 
-
-    
     console.log("--------------Spelare 1-------------");
     console.log("Spelare 1 socketID: " + globalObject.playerOneSocketId);
     console.log("Spelare 1 Nick: " + globalObject.playerOneNick);
     console.log("Spelare 1 Color: " + globalObject.playerOneColor);
 
-  } else if (globalObject.playerTwoNick == null) {
+  } else if (globalObject.playerTwoSocketId == null) {
 
     globalObject.playerTwoSocketId = socket.id;
     globalObject.playerTwoNick = socket.name;
     globalObject.playerTwoColor = socket.color;
 
-
+    globalObject.resetGameArea();
 
     console.log("--------------Spelare 2-------------");
     console.log("Spelare 2 socketID: " + globalObject.playerTwoSocketId);
@@ -181,8 +179,6 @@ io.on('connection', (socket) => {
       myColor: myColor
     });
 
-    globalObject.resetGameArea();
-    
     globalObject.currentPlayer = globalObject.playerOneSocketId;
 
     socket.to(globalObject.currentPlayer).emit('yourMove');
@@ -232,6 +228,8 @@ io.on('connection', (socket) => {
       globalObject.playerTwoNick=null;
       globalObject.playerOneColor=null;
       globalObject.playerTwoColor=null;
+      globalObject.playerOneSocketId=null;
+      globalObject.playerTwoSocketId=null;
     }
     else if(x==2) {
       vinnare = 'Vinnare är ' + globalObject.playerTwoNick + '!';
@@ -242,6 +240,8 @@ io.on('connection', (socket) => {
       globalObject.playerTwoNick=null;
       globalObject.playerOneColor=null;
       globalObject.playerTwoColor=null;
+      globalObject.playerOneSocketId=null;
+      globalObject.playerTwoSocketId=null;
     }
     else if(x==3){
       vinnare = 'Det blev oavgjort!';
@@ -252,6 +252,8 @@ io.on('connection', (socket) => {
       globalObject.playerTwoNick=null;
       globalObject.playerOneColor=null;
       globalObject.playerTwoColor=null;
+      globalObject.playerOneSocketId=null;
+      globalObject.playerTwoSocketId=null;
 
     }
     console.log('testing ' + x);
