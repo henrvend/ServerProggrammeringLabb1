@@ -94,7 +94,7 @@ module.exports = {
         //Hämtad ifrån: https://stackoverflow.com/questions/45473574/node-js-cookies-not-working
         //*************************************************************************************** */
 
-        console.log(rc,  list );
+        //console.log(rc,  list );
         return list;
     }
 }
