@@ -29,7 +29,6 @@ let server = http.listen(3000, () => {
 
 
 app.get('/', (req, res) => {
-  console.log('hello there');
   if (req.cookies.name != undefined && req.cookies.color != undefined) {
     res.sendFile(__dirname + '/static/html/index.html');
   } else {
@@ -37,12 +36,34 @@ app.get('/', (req, res) => {
   }
 });
 
+
+// tar bort alla loggade cookies på sidan
 app.get('/reset', (req, res) => {
+  console.log(req.cookies.name);
+
+  //kollar vilken spelare det är som vi rensa cookies, tar bort spelarens attribut  från globalObjekt
+  if (req.cookies.name == globalObject.playerOneNick) {
+    resetPlayer1();
+  } else if (req.cookies.name == globalObject.playerTwoNick) {
+    resetPlayer2();
+  }
+
+  //tar bort alla sparade cookies
+  Object.keys(req.cookies).forEach(cookieName => {
+    res.clearCookie(cookieName);
+  });
+  clearInterval(globalObject.timerId);
+  res.redirect('/');
+});
+
+
+// tar bort cookies med namnen color och name
+/*app.get('/reset', (req, res) => {
   res.clearCookie('color');
   res.clearCookie('name');
   res.redirect('/');
   //Kan man på något sätt rensa alla kakor med en rad kod?
-});
+});*/
 
 
 //skapar ett post-anrop 
@@ -87,6 +108,8 @@ app.post('/', (req, res) => {
     if (globalObject.playerTwoColor == globalObject.playerOneColor) {
       throw { message: 'Färg redan taget!' }
     }
+
+
     console.log('inloggad');
     /* Invänta feedback gällande ifall vi ska rensa kakor innan nya värden tilldelas befintliga kakor. 
     Oroligheterna ligger väl egentligen i att vi rensar även fast det inte exister några kakor.
@@ -111,11 +134,34 @@ app.post('/', (req, res) => {
     });
     return;
   }
-
-  console.log(name);
-  console.log(color);
   res.redirect('/');
 });
+
+
+function resetPlayers() {
+  resetPlayer1();
+  resetPlayer2();
+}
+
+function resetPlayer1() {
+  globalObject.playerOneNick = null;
+  globalObject.playerOneColor = null;
+  globalObject.playerOneSocketId = null;
+}
+
+function resetPlayer2() {
+  globalObject.playerTwoNick = null;
+  globalObject.playerTwoColor = null;
+  globalObject.playerTwoSocketId = null;
+}
+
+
+
+
+
+//------------------Här börjar socket.io-----------------------//
+//-------------------------------------------------------------//
+
 
 io.on('connection', (socket) => {
 
@@ -130,20 +176,11 @@ io.on('connection', (socket) => {
     socket.color = cookielist.color;
   }
 
-  let opponentNick;
-  let opponentColor;
-  let myColor;
-
   if (globalObject.playerOneSocketId == null) {
 
     globalObject.playerOneSocketId = socket.id;
     globalObject.playerOneNick = socket.name;
     globalObject.playerOneColor = socket.color;
-
-    console.log("--------------Spelare 1-------------");
-    console.log("Spelare 1 socketID: " + globalObject.playerOneSocketId);
-    console.log("Spelare 1 Nick: " + globalObject.playerOneNick);
-    console.log("Spelare 1 Color: " + globalObject.playerOneColor);
 
   } else if (globalObject.playerTwoSocketId == null) {
 
@@ -153,46 +190,32 @@ io.on('connection', (socket) => {
 
     globalObject.resetGameArea();
 
-    console.log("--------------Spelare 2-------------");
-    console.log("Spelare 2 socketID: " + globalObject.playerTwoSocketId);
-    console.log("Spelare 2 Nick: " + globalObject.playerTwoNick);
-    console.log("Spelare 2 Color: " + globalObject.playerTwoColor);
-
-
-    if (globalObject.playerOneSocketId == socket.id) {
-
-      opponentNick = globalObject.playerTwoNick;
-      opponentColor = globalObject.playerTwoColor;
-      myColor = globalObject.playerOneColor;
-
-    } else if (globalObject.playerTwoSocketId == socket.id) {
-
-      opponentNick = globalObject.playerOneNick;
-      opponentColor = globalObject.playerOneColor;
-      myColor = globalObject.playerTwoColor;
-
-    }
-
-    socket.emit('newGame', {
-      opponentNick: opponentNick,
-      opponentColor: opponentColor,
-      myColor: myColor
+    io.to(globalObject.playerOneSocketId).emit('newGame', {
+      opponentNick: globalObject.playerTwoNick,
+      opponentColor: globalObject.playerTwoColor,
+      myColor: globalObject.playerOneColor
     });
 
-    globalObject.currentPlayer = globalObject.playerOneSocketId;
+    io.to(globalObject.playerTwoSocketId).emit('newGame', {
+      opponentNick: globalObject.playerOneNick,
+      opponentColor: globalObject.playerOneColor,
+      myColor: globalObject.playerTwoColor
+    });
 
+
+    //setting current player to player one and give the player yourMove
+    globalObject.currentPlayer = globalObject.playerOneSocketId;
     socket.to(globalObject.currentPlayer).emit('yourMove');
+    globalObject.timerId = setInterval(timeout, 5000);
 
   } else {
     console.log('Redan två spelare anslutna!');
     socket.disconnect();
   }
 
-
-
   socket.on('newMove', (data) => {
-    console.log(cookieString);
 
+    //fillCell ska sättas för att hålla koll på vad som ska fyllas i spelplanen
     let fillCell;
 
     if (cookieString == null) {
@@ -200,61 +223,88 @@ io.on('connection', (socket) => {
       socket.disconnect();
     }
 
+
+    //kollar vilken den aktuella spelaren är och byter spelare, sätter fillCell med korrekt värde för vad som 
+    //ska sättas i gameArea:arrayen
     if (globalObject.currentPlayer == globalObject.playerOneSocketId) {
+
       globalObject.currentPlayer = globalObject.playerTwoSocketId;
-      fillCell = 2;
+      fillCell = 1;
 
     } else if (globalObject.currentPlayer == globalObject.playerTwoSocketId) {
+
       globalObject.currentPlayer = globalObject.playerOneSocketId;
-      fillCell = 1;
+      fillCell = 2;
     }
+
+    clearInterval(globalObject.timerId);
+    globalObject.timerId = setInterval(timeout, 5000);
 
 
     socket.to(globalObject.currentPlayer).emit('yourMove', {
       cellId: data.cellId
     });
-    
-    globalObject.gameArea[data.cellId]=fillCell;
+
+    //Sätter en 1:a eller 2:a beroende på vilken spelares tur det är
+    globalObject.gameArea[data.cellId] = fillCell;
 
     let x = globalObject.checkForWinner();
     let vinnare;
 
-    if(x==1){
-      vinnare = 'Vinnare är '+globalObject.playerOneNick + '!';
-      io.emit('gameover', 
-        vinnare
-      );
-      resetPlayers();
+    if (x == 1) {
+      vinnare = 'Vinnare är ' + globalObject.playerOneNick + '!';
+      winner(vinnare);
+      // io.emit('gameover',
+      //   vinnare
+      // );
+      // clearInterval(globalObject.timerId);
+      // resetPlayers();
     }
-    else if(x==2) {
+    else if (x == 2) {
       vinnare = 'Vinnare är ' + globalObject.playerTwoNick + '!';
-      io.emit('gameover', 
-        vinnare
-      );
-      resetPlayers();
+      winner(vinnare);
+      // io.emit('gameover',
+      //   vinnare
+      // );
+      // clearInterval(globalObject.timerId);
+      // resetPlayers();
     }
-    else if(x==3){
+    else if (x == 3) {
       vinnare = 'Det blev oavgjort!';
-      io.emit('gameover', 
-        vinnare
-      );
-      resetPlayers();
-
+      winner(vinnare);
+      // io.emit('gameover',
+      //   vinnare
+      // );
+      // clearInterval(globalObject.timerId);
+      // resetPlayers();
     }
-    console.log('testing ' + x);
-
   });
 });
 
-function resetPlayers(){
-  globalObject.playerOneNick=null;
-      globalObject.playerTwoNick=null;
-      globalObject.playerOneColor=null;
-      globalObject.playerTwoColor=null;
-      globalObject.playerOneSocketId=null;
-      globalObject.playerTwoSocketId=null;
+function winner(vinnare){
+  io.emit('gameover',
+        vinnare
+      );
+      clearInterval(globalObject.timerId);
+      resetPlayers();
 }
 
+function timeout() {
+  console.log('Timer startas');
+  io.to(globalObject.currentPlayer).emit('timeout');
+
+
+  if (globalObject.currentPlayer == globalObject.playerOneSocketId) {
+    globalObject.currentPlayer = globalObject.playerTwoSocketId;
+  } else if (globalObject.currentPlayer == globalObject.playerTwoSocketId) {
+    globalObject.currentPlayer = globalObject.playerOneSocketId;
+  }
+  io.to(globalObject.currentPlayer).emit('yourMove');
+
+  console.log("5 sekunder har passerat!");
+
+
+};
 
 
 
