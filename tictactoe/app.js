@@ -39,8 +39,6 @@ app.get('/', (req, res) => {
 
 // tar bort alla loggade cookies på sidan
 app.get('/reset', (req, res) => {
-  console.log(req.cookies.name);
-
   //kollar vilken spelare det är som vi rensa cookies, tar bort spelarens attribut  från globalObjekt
   if (req.cookies.name == globalObject.playerOneNick) {
     resetPlayer1();
@@ -83,41 +81,24 @@ app.post('/', (req, res) => {
       throw { element: color, message: 'Ogiltlig färg!' }
     }
 
-  } catch (err) {
-    fs.readFile(__dirname + '/static/html/loggain.html', (error, data) => {
-      if (error) {
-        res.send(error.message);
+    //Stämmer all info tilldelas den till spelare ett och är den redan tagen
+    //sätts den till spelare två
+    if (globalObject.playerOneNick == null && globalObject.playerOneColor == null) {
+      globalObject.playerOneNick = name;
+      globalObject.playerOneColor = color;
+    } else {
+      if (globalObject.playerTwoNick == null && name != globalObject.playerOneNick) {
 
-      } else {
-        console.log(err.message);
-        let serverDOM = new jsDOM.JSDOM(data);
-        serverDOM.window.document.querySelector('#errorMsg').textContent = err.message;
-        data = serverDOM.serialize();
-        res.send(data);
+        if (globalObject.playerTwoColor == null && color != globalObject.playerOneColor) {
+          globalObject.playerTwoNick = name;
+          globalObject.playerTwoColor = color;
+        } else {
+          throw { message: 'Färg redan tagen!' }
+        }
+
+      }else{
+        throw{message: 'Namn redan taget!'}
       }
-    });
-    return;
-  }
-
-  if (globalObject.playerOneNick == null) {
-    globalObject.playerOneNick = name;
-  } else {
-    globalObject.playerTwoNick = name;
-  }
-
-  if (globalObject.playerOneColor == null) {
-    globalObject.playerOneColor = color;
-  } else {
-    globalObject.playerTwoColor = color;
-  }
-
-
-  try {
-    if (globalObject.playerTwoNick == globalObject.playerOneNick) {
-      throw { message: 'Nickname redan taget!' }
-    }
-    if (globalObject.playerTwoColor == globalObject.playerOneColor) {
-      throw { message: 'Färg redan taget!' }
     }
   } catch (err) {
     fs.readFile(__dirname + '/static/html/loggain.html', (error, data) => {
@@ -128,15 +109,15 @@ app.post('/', (req, res) => {
         console.log(err.message);
         let serverDOM = new jsDOM.JSDOM(data);
         serverDOM.window.document.querySelector('#errorMsg').textContent = err.message;
+        serverDOM.window.document.querySelector('#nick_1').setAttribute('value', name);
+        serverDOM.window.document.querySelector('#color_1').setAttribute('value', color);
+
         data = serverDOM.serialize();
         res.send(data);
       }
     });
     return;
   }
-
-
-
 
   console.log('inloggad');
 
@@ -263,29 +244,14 @@ io.on('connection', (socket) => {
     if (x == 1) {
       vinnare = 'Vinnare är ' + globalObject.playerOneNick + '!';
       winner(vinnare);
-      // io.emit('gameover',
-      //   vinnare
-      // );
-      // clearInterval(globalObject.timerId);
-      // resetPlayers();
     }
     else if (x == 2) {
       vinnare = 'Vinnare är ' + globalObject.playerTwoNick + '!';
       winner(vinnare);
-      // io.emit('gameover',
-      //   vinnare
-      // );
-      // clearInterval(globalObject.timerId);
-      // resetPlayers();
     }
     else if (x == 3) {
       vinnare = 'Det blev oavgjort!';
       winner(vinnare);
-      // io.emit('gameover',
-      //   vinnare
-      // );
-      // clearInterval(globalObject.timerId);
-      // resetPlayers();
     }
   });
 });
