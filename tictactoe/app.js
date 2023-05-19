@@ -48,22 +48,12 @@ app.get('/reset', (req, res) => {
     resetPlayer2();
   }
 
-  //tar bort alla sparade cookies
-  Object.keys(req.cookies).forEach(cookieName => {
-    res.clearCookie(cookieName);
-  });
+  //tar bort sparade cookies
+  res.clearCookie('color');
+  res.clearCookie('name');
   clearInterval(globalObject.timerId);
   res.redirect('/');
 });
-
-
-// tar bort cookies med namnen color och name
-/*app.get('/reset', (req, res) => {
-  res.clearCookie('color');
-  res.clearCookie('name');
-  res.redirect('/');
-  //Kan man på något sätt rensa alla kakor med en rad kod?
-});*/
 
 
 //skapar ett post-anrop 
@@ -76,17 +66,7 @@ app.post('/', (req, res) => {
 
   //Osäkra på hur vi ska lägga till och kolla namn innan de sätts
   // från clientsidan, gör så här och ändrar efter att labb2 startar.
-  if (globalObject.playerOneNick == null) {
-    globalObject.playerOneNick = name;
-  } else {
-    globalObject.playerTwoNick = name;
-  }
 
-  if (globalObject.playerOneColor == null) {
-    globalObject.playerOneColor = color;
-  } else {
-    globalObject.playerTwoColor = color;
-  }
 
   //Här startar kollen av data som kommer in
   try {
@@ -102,21 +82,6 @@ app.post('/', (req, res) => {
     if (color === '#ffffff' || color === '#000000') {
       throw { element: color, message: 'Ogiltlig färg!' }
     }
-    if (globalObject.playerTwoNick == globalObject.playerOneNick) {
-      throw { message: 'Nickname redan taget!' }
-    }
-    if (globalObject.playerTwoColor == globalObject.playerOneColor) {
-      throw { message: 'Färg redan taget!' }
-    }
-
-
-    console.log('inloggad');
-    /* Invänta feedback gällande ifall vi ska rensa kakor innan nya värden tilldelas befintliga kakor. 
-    Oroligheterna ligger väl egentligen i att vi rensar även fast det inte exister några kakor.
-    res.clearCookie.color;
-    res.clearCookie.name;*/
-    res.cookie('color', color, { maxAge: 1000 * 60 * 120 });
-    res.cookie('name', name, { maxAge: 1000 * 60 * 120 });
 
   } catch (err) {
     fs.readFile(__dirname + '/static/html/loggain.html', (error, data) => {
@@ -128,12 +93,56 @@ app.post('/', (req, res) => {
         let serverDOM = new jsDOM.JSDOM(data);
         serverDOM.window.document.querySelector('#errorMsg').textContent = err.message;
         data = serverDOM.serialize();
-
         res.send(data);
       }
     });
     return;
   }
+
+  if (globalObject.playerOneNick == null) {
+    globalObject.playerOneNick = name;
+  } else {
+    globalObject.playerTwoNick = name;
+  }
+
+  if (globalObject.playerOneColor == null) {
+    globalObject.playerOneColor = color;
+  } else {
+    globalObject.playerTwoColor = color;
+  }
+
+
+  try {
+    if (globalObject.playerTwoNick == globalObject.playerOneNick) {
+      throw { message: 'Nickname redan taget!' }
+    }
+    if (globalObject.playerTwoColor == globalObject.playerOneColor) {
+      throw { message: 'Färg redan taget!' }
+    }
+  } catch (err) {
+    fs.readFile(__dirname + '/static/html/loggain.html', (error, data) => {
+      if (error) {
+        res.send(error.message);
+
+      } else {
+        console.log(err.message);
+        let serverDOM = new jsDOM.JSDOM(data);
+        serverDOM.window.document.querySelector('#errorMsg').textContent = err.message;
+        data = serverDOM.serialize();
+        res.send(data);
+      }
+    });
+    return;
+  }
+
+
+
+
+  console.log('inloggad');
+
+  res.cookie('color', color, { maxAge: 1000 * 60 * 120 });
+  res.cookie('name', name, { maxAge: 1000 * 60 * 120 });
+
   res.redirect('/');
 });
 
@@ -281,12 +290,12 @@ io.on('connection', (socket) => {
   });
 });
 
-function winner(vinnare){
+function winner(vinnare) {
   io.emit('gameover',
-        vinnare
-      );
-      clearInterval(globalObject.timerId);
-      resetPlayers();
+    vinnare
+  );
+  clearInterval(globalObject.timerId);
+  resetPlayers();
 }
 
 function timeout() {
