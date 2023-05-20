@@ -58,12 +58,9 @@ app.get('/reset', (req, res) => {
 //här ska valideringen av uppgifter ske när de hämtas in från formuläret
 app.post('/', (req, res) => {
 
-
+  //Hämtat namn och färg som sätts i formuläret
   let name = req.body.nick_1;
   let color = req.body.color_1;
-
-  //Osäkra på hur vi ska lägga till och kolla namn innan de sätts
-  // från clientsidan, gör så här och ändrar efter att labb2 startar.
 
 
   //Här startar kollen av data som kommer in
@@ -121,6 +118,7 @@ app.post('/', (req, res) => {
 
   console.log('inloggad');
 
+  //Om all information stämmer sätts kakorna till namn och färg
   res.cookie('color', color, { maxAge: 1000 * 60 * 120 });
   res.cookie('name', name, { maxAge: 1000 * 60 * 120 });
 
@@ -128,10 +126,12 @@ app.post('/', (req, res) => {
 });
 
 
+//function som sätter alla spelarvärden till null
 function resetPlayers() {
   resetPlayer1();
   resetPlayer2();
 }
+
 
 function resetPlayer1() {
   globalObject.playerOneNick = null;
