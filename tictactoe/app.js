@@ -39,6 +39,7 @@ app.get('/', (req, res) => {
 
 // tar bort alla loggade cookies på sidan
 app.get('/reset', (req, res) => {
+  
   //kollar vilken spelare det är som vi rensa cookies, tar bort spelarens attribut  från globalObjekt
   if (req.cookies.name == globalObject.playerOneNick) {
     resetPlayer1();
@@ -119,8 +120,8 @@ app.post('/', (req, res) => {
   console.log('inloggad');
 
   //Om all information stämmer sätts kakorna till namn och färg
-  res.cookie('color', color, { maxAge: 1000 * 60 * 120 });
-  res.cookie('name', name, { maxAge: 1000 * 60 * 120 });
+  res.cookie('color', color, { maxAge: 1000 * 60 * 120, httpOnly:true});
+  res.cookie('name', name, { maxAge: 1000 * 60 * 120, httpOnly:true});
 
   res.redirect('/');
 });
