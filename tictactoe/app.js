@@ -13,21 +13,21 @@ const globalObject = require('./servermodules/game-modul.js');
 const fs = require('fs');
 
 
-
 // Sätter rot-access från '/', så att man kommer åt filerna från webben
 // och man kan skriva in ex. localhost:3000/html/index.html och nå sidan, 
 // utan att man skickas dit.
 app.use('/public', express.static(__dirname + ('/static')));
 app.use(express.urlencoded({ extended: true }));
 
-//använder cookieParser som middleware, sätter signed
+//använder cookieParser som middleware.
 app.use(cookieParser());
-
+//Öppnar upp en server på port 3000 och skriver ett meddelande till konsolen.
 let server = http.listen(3000, () => {
   console.log('Server startad på ', server.address().port);
 });
 
-
+/*Vid inladdning på sida så beroende på ifall det finns kakor hos klienten så hänvisas spelaren till logga in sidan eller startsidan 
+för spelet*/
 app.get('/', (req, res) => {
   if (req.cookies.name != undefined && req.cookies.color != undefined) {
     res.sendFile(__dirname + '/static/html/index.html');
@@ -39,7 +39,7 @@ app.get('/', (req, res) => {
 
 // tar bort alla loggade cookies på sidan
 app.get('/reset', (req, res) => {
-  
+
   //kollar vilken spelare det är som vi rensa cookies, tar bort spelarens attribut  från globalObjekt
   if (req.cookies.name == globalObject.playerOneNick) {
     resetPlayer1();
@@ -64,7 +64,7 @@ app.post('/', (req, res) => {
   let color = req.body.color_1;
 
 
-  //Här startar kollen av data som kommer in
+  //Här startar kontrollen av data som kommer in
   try {
     if (name === undefined || name === '') {
       throw { element: name, message: 'Namn måste vara ifyllt' }
@@ -84,21 +84,27 @@ app.post('/', (req, res) => {
     if (globalObject.playerOneNick == null && globalObject.playerOneColor == null) {
       globalObject.playerOneNick = name;
       globalObject.playerOneColor = color;
-    } else {
-      if (globalObject.playerTwoNick == null && name != globalObject.playerOneNick) {
-
-        if (globalObject.playerTwoColor == null && color != globalObject.playerOneColor) {
-          globalObject.playerTwoNick = name;
-          globalObject.playerTwoColor = color;
-        } else {
-          throw { message: 'Färg redan tagen!' }
-        }
-
-      }else{
-        throw{message: 'Namn redan taget!'}
+    } else if (globalObject.playerTwoNick == null && name != globalObject.playerOneNick) {
+      if (globalObject.playerTwoColor == null && color != globalObject.playerOneColor) {
+        globalObject.playerTwoNick = name;
+        globalObject.playerTwoColor = color;
+      } else {
+        throw { message: 'Färg redan tagen!' }
       }
+
+    } else if(globalObject.playerTwoNick == null && name == globalObject.playerOneNick){
+      throw { message: 'Namn redan taget!' }
     }
-  } catch (err) {
+    //Kollar om det finns två spelare anslutna, kommer man förbi den här delen via tex postman görs en disconnect av socketanslutningen.
+    //Vi är osäkra på huruvida man ska göra kollen eller om man ska låta formuläret passera om värdena är okej för att få en disconnect
+    //och inte få någon feedback eller skickas vidare. Vill ni handledare se om disconnecten fungerar kan ni kommentera bort "else if:en" nedanför.
+    else if(globalObject.playerOneNick != null && globalObject.playerTwoNick != null){
+      throw { message: 'Redan två spelare anslutna!'}
+    }
+    //kommentera bort hit vid test av socket.disconnect() vid fler än 2 spelare
+    
+  }
+  catch (err) {
     fs.readFile(__dirname + '/static/html/loggain.html', (error, data) => {
       if (error) {
         res.send(error.message);
@@ -119,9 +125,9 @@ app.post('/', (req, res) => {
 
   console.log('inloggad');
 
-  //Om all information stämmer sätts kakorna till namn och färg
-  res.cookie('color', color, { maxAge: 1000 * 60 * 120, httpOnly:true});
-  res.cookie('name', name, { maxAge: 1000 * 60 * 120, httpOnly:true});
+  //Om all information stämmer sätts kakorna till namn och färg, server only med httpOnly:true.
+  res.cookie('color', color, { maxAge: 1000 * 60 * 120, httpOnly: true });
+  res.cookie('name', name, { maxAge: 1000 * 60 * 120, httpOnly: true });
 
   res.redirect('/');
 });
@@ -181,12 +187,14 @@ io.on('connection', (socket) => {
 
     globalObject.resetGameArea();
 
+
+    //Skickar newgame till spelare ett, med motståndarens data och spelarens egen färg
     io.to(globalObject.playerOneSocketId).emit('newGame', {
       opponentNick: globalObject.playerTwoNick,
       opponentColor: globalObject.playerTwoColor,
       myColor: globalObject.playerOneColor
     });
-
+    //Skickar newgame till spelare två, med motståndarens data och spelarens egen färg
     io.to(globalObject.playerTwoSocketId).emit('newGame', {
       opponentNick: globalObject.playerOneNick,
       opponentColor: globalObject.playerOneColor,
@@ -194,13 +202,14 @@ io.on('connection', (socket) => {
     });
 
 
-    //setting current player to player one and give the player yourMove
+    //Sätter spelare ett till currentPlayer och skickar yourMove
     globalObject.currentPlayer = globalObject.playerOneSocketId;
     socket.to(globalObject.currentPlayer).emit('yourMove');
+    //startar timer direkt när 2 spelare har anslutit
     globalObject.timerId = setInterval(timeout, 5000);
 
   } else {
-    console.log('Redan två spelare anslutna!');
+    console.log('Redan två spelare anslutna');
     socket.disconnect();
   }
 
@@ -228,6 +237,7 @@ io.on('connection', (socket) => {
       fillCell = 2;
     }
 
+    //vid en ny newMove rensas intervall och börjar om på 5s.
     clearInterval(globalObject.timerId);
     globalObject.timerId = setInterval(timeout, 5000);
 
@@ -242,6 +252,7 @@ io.on('connection', (socket) => {
     let x = globalObject.checkForWinner();
     let vinnare;
 
+    //Utifrån vad som returneras ifrån funktionen checkForWinner så tilldelas variabeln vinnare vinnarens nick.
     if (x == 1) {
       vinnare = 'Vinnare är ' + globalObject.playerOneNick + '!';
       winner(vinnare);
@@ -261,14 +272,16 @@ function winner(vinnare) {
   io.emit('gameover',
     vinnare
   );
+  //stoppar timern vid spelets slut, rensar spelare från globalObject
   clearInterval(globalObject.timerId);
   resetPlayers();
 }
 
+// timeout-funktionen emittar 'timeout' till de nuvarande spelarna. Sedan sätts currentPlayer till motståndaren, för att sedan avslutas med att 'yourMove' emittas.
+// Detta resulterar i att beroende på den tidsintervall som bestäms så kommer spelturen att gå över till motståndaren om tidsintervallen överskrids.
 function timeout() {
   console.log('Timer startas');
   io.to(globalObject.currentPlayer).emit('timeout');
-
 
   if (globalObject.currentPlayer == globalObject.playerOneSocketId) {
     globalObject.currentPlayer = globalObject.playerTwoSocketId;
