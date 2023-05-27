@@ -92,17 +92,17 @@ app.post('/', (req, res) => {
         throw { message: 'Färg redan tagen!' }
       }
 
-    } else if(globalObject.playerTwoNick == null && name == globalObject.playerOneNick){
+    } else if (globalObject.playerTwoNick == null && name == globalObject.playerOneNick) {
       throw { message: 'Namn redan taget!' }
     }
     //Kollar om det finns två spelare anslutna, kommer man förbi den här delen via tex postman görs en disconnect av socketanslutningen.
     //Vi är osäkra på huruvida man ska göra kollen eller om man ska låta formuläret passera om värdena är okej för att få en disconnect
     //och inte få någon feedback eller skickas vidare. Vill ni handledare se om disconnecten fungerar kan ni kommentera bort "else if:en" nedanför.
-    else if(globalObject.playerOneNick != null && globalObject.playerTwoNick != null){
-      throw { message: 'Redan två spelare anslutna!'}
+    else if (globalObject.playerOneNick != null && globalObject.playerTwoNick != null) {
+      throw { message: 'Redan två spelare anslutna!' }
     }
     //kommentera bort hit vid test av socket.disconnect() vid fler än 2 spelare
-    
+
   }
   catch (err) {
     fs.readFile(__dirname + '/static/html/loggain.html', (error, data) => {
@@ -162,9 +162,13 @@ function resetPlayer2() {
 
 io.on('connection', (socket) => {
 
-
   let cookieString = socket.handshake.headers.cookie;
   let cookielist = globalObject.parseCookies(cookieString);
+
+
+  if (cookielist.name == null || cookielist.color == null) {
+    socket.disconnect("Kakorna saknas!");
+  }
 
   if (cookielist.name != null) {
     socket.name = cookielist.name;
@@ -209,8 +213,8 @@ io.on('connection', (socket) => {
     globalObject.timerId = setInterval(timeout, 5000);
 
   } else {
-    console.log('Redan två spelare anslutna');
-    socket.disconnect();
+    
+    socket.disconnect('Redan två spelare anslutna');
   }
 
   socket.on('newMove', (data) => {
@@ -218,10 +222,7 @@ io.on('connection', (socket) => {
     //fillCell ska sättas för att hålla koll på vad som ska fyllas i spelplanen
     let fillCell;
 
-    if (cookieString == null) {
-      console.log("Kakorna saknas!");
-      socket.disconnect();
-    }
+
 
 
     //kollar vilken den aktuella spelaren är och byter spelare, sätter fillCell med korrekt värde för vad som 
@@ -280,7 +281,7 @@ function winner(vinnare) {
 // timeout-funktionen emittar 'timeout' till de nuvarande spelarna. Sedan sätts currentPlayer till motståndaren, för att sedan avslutas med att 'yourMove' emittas.
 // Detta resulterar i att beroende på den tidsintervall som bestäms så kommer spelturen att gå över till motståndaren om tidsintervallen överskrids.
 function timeout() {
-  console.log('Timer startas');
+
   io.to(globalObject.currentPlayer).emit('timeout');
 
   if (globalObject.currentPlayer == globalObject.playerOneSocketId) {
@@ -289,8 +290,6 @@ function timeout() {
     globalObject.currentPlayer = globalObject.playerOneSocketId;
   }
   io.to(globalObject.currentPlayer).emit('yourMove');
-
-  console.log("5 sekunder har passerat!");
 
 
 };
